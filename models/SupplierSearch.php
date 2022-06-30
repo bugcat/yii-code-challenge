@@ -7,11 +7,15 @@ use yii\data\ActiveDataProvider;
 class SupplierSearch extends Supplier
 {
 
+    // allow id operators
+    const ID_PATTERN = '/^(\>|\<|=|\>=|\<=|\!=)?(\d+)$/';
+
     public function rules()
     {
         // only fields in rules() are searchable
         return [
-            [['id'], 'integer'],
+            //[['id'], 'integer'],
+            ['id', 'match', 'pattern' => self::ID_PATTERN],
             [['name', 'code'], 'safe'],
             ['t_status', 'in', 'range' => ['ok', 'hold']],
         ];
@@ -23,7 +27,7 @@ class SupplierSearch extends Supplier
         return Model::scenarios();
     }
 
-    public function search($params)
+    public function search($params, $return = 'provider')
     {
         $query = Supplier::find();
 
@@ -35,17 +39,26 @@ class SupplierSearch extends Supplier
         ]);
 
         // load the search form data and validate
-        if (!($this->load($params) && $this->validate())) {
-            return $dataProvider;
+        if ( !($this->load($params) && $this->validate()) ) {
+            return 'provider' == $return ? $dataProvider : $query;
         }
 
         // adjust the query by adding the filters
-        $query->andFilterWhere(['id' => $this->id]);
+        preg_match(self::ID_PATTERN, $this->id, $matches);
+        if ( $matches ) {
+            $operator = $matches[1] ?? null;
+            $id = $matches[2] ?? 0;
+            if ( $operator ) {
+                $query->andFilterWhere([$operator, 'id', $id]);
+            } else {
+                $query->andFilterWhere(['id' => $id]);
+            }
+        }
         $query->andFilterWhere(['like', 'name', $this->name])
               ->andFilterWhere(['like', 'code', $this->code]);
         $query->andFilterWhere(['t_status' => $this->t_status]);
 
-        return $dataProvider;
+        return 'provider' == $return ? $dataProvider : $query;
     }
 
 }

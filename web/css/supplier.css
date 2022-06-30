@@ -1,0 +1,8 @@
+
+.supplier .selected-page-all
+, .supplier .selected-search-all
+{
+  text-align:center;
+  background:#eee;
+  display:none;
+}
